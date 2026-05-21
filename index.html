@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0e27">
+    <meta name="description" content="DX지원팀 스마트 포토 트레저 헌트 - 야외 단합 행사 미션 게임">
+    <title>DX 트레저 헌트 🏆</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Main App Container -->
+    <div id="app"></div>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="bottom-nav hidden">
+        <button class="nav-btn active" data-view="missions" onclick="navigate('missions')">
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-label">미션</span>
+        </button>
+        <button class="nav-btn" data-view="leaderboard" onclick="navigate('leaderboard')">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-label">순위</span>
+        </button>
+    </nav>
+
+    <!-- Photo Upload Modal -->
+    <div id="photo-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closePhotoModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">미션</h3>
+                <button class="modal-close" onclick="closePhotoModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-description" class="modal-desc"></p>
+                <div id="photo-preview-area" class="photo-preview-area">
+                    <label for="photo-input" class="photo-label">
+                        <span class="camera-icon">📷</span>
+                        <span>사진 촬영하기</span>
+                    </label>
+                    <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
+                    <img id="photo-preview" class="photo-preview hidden" alt="미션 사진 미리보기" />
+                </div>
+                <button id="submit-photo-btn" class="btn btn-primary btn-full hidden" onclick="submitPhoto()">
+                    <span class="btn-text">미션 완료! 🎉</span>
+                    <span class="btn-loading hidden">업로드 중...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- CDN Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <!-- App -->
+    <script src="app.js"></script>
+
+</body>
+</html>
