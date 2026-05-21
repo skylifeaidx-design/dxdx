@@ -967,6 +967,170 @@ body {
 .connection-dot.offline { background: var(--accent-rose); }
 
 /* ============================================================
+   LADDER GAME
+   ============================================================ */
+
+.ladder-view {
+    padding: 20px;
+    padding-bottom: 80px;
+    animation: fadeIn 0.4s var(--ease);
+}
+
+.ladder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+.ladder-header h2 {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+.ladder-back {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.ladder-step-content {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    animation: slideUpSpring 0.4s var(--ease-spring);
+}
+
+.ladder-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.ladder-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+.ladder-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}
+
+.ladder-player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ladder-player-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ladder-player-item.selected {
+    border-color: var(--accent-purple);
+    background: rgba(139, 92, 246, 0.1);
+}
+.ladder-player-emoji {
+    font-size: 1.5rem;
+    margin-right: 12px;
+}
+.ladder-player-name {
+    flex: 1;
+    font-weight: 600;
+}
+.ladder-checkbox {
+    font-size: 1.2rem;
+}
+
+.ladder-prize-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.ladder-prize-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.prize-num {
+    width: 24px;
+    height: 24px;
+    background: var(--glass-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.prize-input {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.ladder-game-wrapper {
+    position: relative;
+    width: max-content;
+    padding: 20px;
+}
+
+.ladder-players-row, .ladder-prizes-row {
+    display: flex;
+}
+
+.ladder-col-header, .ladder-col-prize {
+    width: 70px; /* matched to colWidth in JS */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.ladder-col-header {
+    cursor: pointer;
+    padding-bottom: 10px;
+    transition: transform 0.2s;
+}
+.ladder-col-header:active {
+    transform: scale(0.9);
+}
+
+.ladder-col-emoji {
+    font-size: 1.8rem;
+    margin-bottom: 4px;
+}
+.ladder-col-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ladder-col-prize {
+    padding-top: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    word-break: keep-all;
+    transition: all 0.3s;
+}
+.ladder-col-prize.highlight {
+    color: var(--accent-gold);
+    transform: scale(1.1);
+}
+
+/* ============================================================
    RESPONSIVE — small screens
    ============================================================ */
 

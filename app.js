@@ -96,6 +96,13 @@ let state = {
     isUploading: false,
 };
 
+let ladderState = {
+    step: 1, // 1: Select, 2: Prizes, 3: Game
+    selectedPlayers: [], // player ids
+    prizes: [], // prize strings
+    paths: [] // calculated ladder paths
+};
+
 // ============================================================
 // Initialization
 // ============================================================
@@ -139,7 +146,7 @@ function handleRouting() {
         navigate('missions');
         return;
     }
-    if (!state.currentPlayer && hash !== 'login') {
+    if (!state.currentPlayer && hash !== 'login' && hash !== 'ladder') {
         navigate('login');
         return;
     }
@@ -185,6 +192,10 @@ function render() {
             nav.classList.remove('hidden');
             updateNavActive('leaderboard');
             break;
+        case 'ladder':
+            app.innerHTML = renderLadder();
+            nav.classList.add('hidden');
+            break;
         default:
             navigate('login');
     }
@@ -222,6 +233,12 @@ function renderLogin() {
             <p class="login-label" style="margin-top: 16px;">참가자 선택</p>
             <div class="player-grid">
                 ${playerCards}
+            </div>
+            
+            <div style="margin-top: 40px; width: 100%; max-width: 340px;">
+                <button class="btn btn-outline btn-full" style="border-color: var(--accent-purple); color: var(--accent-purple);" onclick="navigate('ladder')">
+                    🎲 DX 사다리 게임하기
+                </button>
             </div>
         </div>
     `;
@@ -714,6 +731,369 @@ async function recalculateScore(playerId) {
             completed_missions: completedCount
         })
         .eq('id', playerId);
+}
+
+// ============================================================
+// Ladder Game
+// ============================================================
+
+function renderLadder() {
+    let html = `<div class="ladder-view">`;
+    html += `
+        <div class="ladder-header">
+            <button class="ladder-back" onclick="navigate('login')">← 뒤로</button>
+            <h2>🎲 DX 사다리 게임</h2>
+            <div style="width: 48px;"></div>
+        </div>
+    `;
+
+    if (ladderState.step === 1) html += renderLadderStep1();
+    else if (ladderState.step === 2) html += renderLadderStep2();
+    else if (ladderState.step === 3) html += renderLadderStep3();
+
+    html += `</div>`;
+    return html;
+}
+
+function renderLadderStep1() {
+    const isAllSelected = ladderState.selectedPlayers.length === PLAYERS.length;
+    
+    let html = `
+        <div class="ladder-step-content">
+            <div class="ladder-title">참가자 선택</div>
+            <div class="ladder-desc">사다리 게임에 참여할 인원을 선택해주세요. (${ladderState.selectedPlayers.length}명 선택됨)</div>
+            
+            <div class="ladder-actions">
+                <button class="btn btn-outline" style="padding: 8px 12px; font-size: 0.8rem;" onclick="toggleLadderAllPlayers()">
+                    ${isAllSelected ? '전체 해제' : '전체 선택'}
+                </button>
+            </div>
+            
+            <div class="ladder-player-list">
+    `;
+
+    PLAYERS.forEach(p => {
+        const isSelected = ladderState.selectedPlayers.includes(p.id);
+        html += `
+            <div class="ladder-player-item ${isSelected ? 'selected' : ''}" onclick="toggleLadderPlayer('${p.id}')">
+                <div class="ladder-player-emoji">${p.emoji}</div>
+                <div class="ladder-player-name">${p.name}</div>
+                <div class="ladder-checkbox">
+                    ${isSelected ? '✅' : '⬛'}
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top: 24px;" onclick="goToLadderStep2()" ${ladderState.selectedPlayers.length < 2 ? 'disabled' : ''}>
+                다음 단계 (결과 설정) →
+            </button>
+        </div>
+    `;
+    return html;
+}
+
+function toggleLadderPlayer(id) {
+    const idx = ladderState.selectedPlayers.indexOf(id);
+    if (idx > -1) {
+        ladderState.selectedPlayers.splice(idx, 1);
+    } else {
+        ladderState.selectedPlayers.push(id);
+    }
+    render();
+}
+
+function toggleLadderAllPlayers() {
+    if (ladderState.selectedPlayers.length === PLAYERS.length) {
+        ladderState.selectedPlayers = [];
+    } else {
+        ladderState.selectedPlayers = PLAYERS.map(p => p.id);
+    }
+    render();
+}
+
+function goToLadderStep2() {
+    if (ladderState.selectedPlayers.length < 2) {
+        showToast('최소 2명 이상 선택해주세요.', 'error');
+        return;
+    }
+    ladderState.step = 2;
+    // Initialize prizes array if length mismatch
+    if (ladderState.prizes.length !== ladderState.selectedPlayers.length) {
+        ladderState.prizes = Array(ladderState.selectedPlayers.length).fill('');
+    }
+    render();
+}
+
+function renderLadderStep2() {
+    let html = `
+        <div class="ladder-step-content">
+            <div class="ladder-title">결과 항목 설정</div>
+            <div class="ladder-desc">총 ${ladderState.selectedPlayers.length}개의 결과를 입력해주세요. (예: 꽝, 커피 쏘기)</div>
+            
+            <div class="ladder-prize-list">
+    `;
+
+    for (let i = 0; i < ladderState.selectedPlayers.length; i++) {
+        html += `
+            <div class="ladder-prize-item">
+                <span class="prize-num">${i + 1}</span>
+                <input type="text" class="prize-input" placeholder="결과 입력" value="${ladderState.prizes[i] || ''}" oninput="updateLadderPrize(${i}, this.value)">
+            </div>
+        `;
+    }
+
+    html += `
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="btn btn-outline" style="flex: 1;" onclick="ladderState.step = 1; render();">← 이전</button>
+                <button class="btn btn-primary" style="flex: 2;" onclick="startLadderGame()">사다리 시작! 🚀</button>
+            </div>
+        </div>
+    `;
+    return html;
+}
+
+function updateLadderPrize(index, value) {
+    ladderState.prizes[index] = value;
+}
+
+function startLadderGame() {
+    // Check if all prizes are filled
+    const isEmpty = ladderState.prizes.some(p => p.trim() === '');
+    if (isEmpty) {
+        showToast('모든 결과 항목을 입력해주세요.', 'error');
+        return;
+    }
+    ladderState.step = 3;
+    render();
+    
+    // Defer canvas drawing slightly to allow DOM to render
+    setTimeout(() => {
+        initLadderCanvas();
+    }, 100);
+}
+
+function renderLadderStep3() {
+    const players = ladderState.selectedPlayers.map(id => PLAYERS.find(p => p.id === id));
+    
+    let html = `
+        <div class="ladder-step-content" style="display: flex; flex-direction: column; align-items: center; max-width: 100%; overflow-x: auto;">
+            <div class="ladder-game-wrapper">
+                <div class="ladder-players-row">
+                    ${players.map((p, i) => `
+                        <div class="ladder-col-header" onclick="playLadderAnim(${i})">
+                            <div class="ladder-col-emoji">${p.emoji}</div>
+                            <div class="ladder-col-name">${p.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <canvas id="ladder-canvas" width="${players.length * 70}" height="300"></canvas>
+                
+                <div class="ladder-prizes-row">
+                    ${ladderState.prizes.map(prize => `
+                        <div class="ladder-col-prize">${prize}</div>
+                    `).join('')}
+                </div>
+            </div>
+            <button class="btn btn-outline" style="margin-top: 30px;" onclick="resetLadder()">다시 설정하기</button>
+        </div>
+    `;
+    return html;
+}
+
+function resetLadder() {
+    ladderState.step = 1;
+    render();
+}
+
+// Canvas logic
+let ladderCtx = null;
+let ladderLines = []; // horizontal lines: { row, col }
+let animState = null; // for animation
+
+function initLadderCanvas() {
+    const canvas = document.getElementById('ladder-canvas');
+    if (!canvas) return;
+    ladderCtx = canvas.getContext('2d');
+    
+    const numCols = ladderState.selectedPlayers.length;
+    const numRows = 10;
+    const colWidth = 70;
+    const rowHeight = canvas.height / (numRows + 1);
+    
+    // Generate random horizontal lines
+    ladderLines = [];
+    for (let r = 1; r <= numRows; r++) {
+        // Randomly place lines, avoiding consecutive lines in same row touching
+        let occupied = false;
+        for (let c = 0; c < numCols - 1; c++) {
+            if (!occupied && Math.random() > 0.5) {
+                ladderLines.push({ row: r, col: c });
+                occupied = true; // prevent next col from having line on same row
+            } else {
+                occupied = false;
+            }
+        }
+    }
+    
+    drawLadderBase();
+}
+
+function drawLadderBase() {
+    if (!ladderCtx) return;
+    const canvas = ladderCtx.canvas;
+    ladderCtx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const numCols = ladderState.selectedPlayers.length;
+    const numRows = 10;
+    const colWidth = 70;
+    const rowHeight = canvas.height / (numRows + 1);
+    const startX = colWidth / 2;
+    
+    ladderCtx.strokeStyle = 'var(--glass-border-hover)';
+    ladderCtx.lineWidth = 4;
+    ladderCtx.lineCap = 'round';
+    ladderCtx.lineJoin = 'round';
+    
+    // Draw vertical lines
+    for (let c = 0; c < numCols; c++) {
+        const x = startX + c * colWidth;
+        ladderCtx.beginPath();
+        ladderCtx.moveTo(x, 0);
+        ladderCtx.lineTo(x, canvas.height);
+        ladderCtx.stroke();
+    }
+    
+    // Draw horizontal lines
+    for (const line of ladderLines) {
+        const y = line.row * rowHeight;
+        const x1 = startX + line.col * colWidth;
+        const x2 = startX + (line.col + 1) * colWidth;
+        ladderCtx.beginPath();
+        ladderCtx.moveTo(x1, y);
+        ladderCtx.lineTo(x2, y);
+        ladderCtx.stroke();
+    }
+}
+
+function playLadderAnim(startIndex) {
+    if (animState && animState.playing) return;
+    
+    // Reset canvas to base
+    drawLadderBase();
+    
+    const canvas = ladderCtx.canvas;
+    const numRows = 10;
+    const colWidth = 70;
+    const rowHeight = canvas.height / (numRows + 1);
+    const startX = colWidth / 2;
+    
+    // Calculate path
+    let path = [{ x: startX + startIndex * colWidth, y: 0 }];
+    let currentCol = startIndex;
+    
+    for (let r = 1; r <= numRows; r++) {
+        const y = r * rowHeight;
+        path.push({ x: startX + currentCol * colWidth, y: y }); // move down to row
+        
+        // Check if there is a line left or right
+        const lineLeft = ladderLines.find(l => l.row === r && l.col === currentCol - 1);
+        const lineRight = ladderLines.find(l => l.row === r && l.col === currentCol);
+        
+        if (lineLeft) {
+            currentCol--;
+            path.push({ x: startX + currentCol * colWidth, y: y });
+        } else if (lineRight) {
+            currentCol++;
+            path.push({ x: startX + currentCol * colWidth, y: y });
+        }
+    }
+    // move down to end
+    path.push({ x: startX + currentCol * colWidth, y: canvas.height });
+    
+    // Setup animation
+    animState = {
+        playing: true,
+        path: path,
+        progress: 0,
+        totalLength: 0,
+        segments: [],
+        endCol: currentCol
+    };
+    
+    // Calculate lengths
+    for (let i = 0; i < path.length - 1; i++) {
+        const dx = path[i+1].x - path[i].x;
+        const dy = path[i+1].y - path[i].y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        animState.segments.push({
+            p1: path[i],
+            p2: path[i+1],
+            length: len,
+            accLength: animState.totalLength
+        });
+        animState.totalLength += len;
+    }
+    
+    requestAnimationFrame(animateLadder);
+}
+
+function animateLadder(timestamp) {
+    if (!animState.startTime) animState.startTime = timestamp;
+    const elapsed = timestamp - animState.startTime;
+    const duration = 2000; // 2 seconds
+    
+    animState.progress = Math.min(elapsed / duration, 1);
+    
+    drawLadderBase(); // redraw base
+    
+    // Draw animated line
+    const currentLen = animState.progress * animState.totalLength;
+    
+    ladderCtx.strokeStyle = 'var(--accent-gold)';
+    ladderCtx.lineWidth = 6;
+    ladderCtx.beginPath();
+    ladderCtx.moveTo(animState.path[0].x, animState.path[0].y);
+    
+    for (const seg of animState.segments) {
+        if (currentLen >= seg.accLength + seg.length) {
+            // Segment fully drawn
+            ladderCtx.lineTo(seg.p2.x, seg.p2.y);
+        } else if (currentLen > seg.accLength) {
+            // Segment partially drawn
+            const ratio = (currentLen - seg.accLength) / seg.length;
+            const x = seg.p1.x + (seg.p2.x - seg.p1.x) * ratio;
+            const y = seg.p1.y + (seg.p2.y - seg.p1.y) * ratio;
+            ladderCtx.lineTo(x, y);
+            break;
+        }
+    }
+    ladderCtx.stroke();
+    
+    if (animState.progress < 1) {
+        requestAnimationFrame(animateLadder);
+    } else {
+        animState.playing = false;
+        
+        // Highlight prize
+        const prizeEls = document.querySelectorAll('.ladder-col-prize');
+        prizeEls.forEach(el => el.classList.remove('highlight'));
+        if (prizeEls[animState.endCol]) {
+            prizeEls[animState.endCol].classList.add('highlight');
+        }
+        
+        // Pop confetti if not '꽝'
+        const prize = ladderState.prizes[animState.endCol];
+        if (prize && prize.indexOf('꽝') === -1) {
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 50, spread: 40, origin: { y: 0.8 } });
+            }
+        }
+    }
 }
 
 // ============================================================
