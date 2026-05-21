@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0e27">
     <meta name="description" content="DX지원팀 스마트 포토 트레저 헌트 - 야외 단합 행사 미션 게임">
-    <title>DX 트레저 헌트 🏆</title>
+    <title>DX지원팀 합정 아웃팅 🏆</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,9 +43,9 @@
             <div class="modal-body">
                 <p id="modal-description" class="modal-desc"></p>
                 <div id="photo-preview-area" class="photo-preview-area">
-                    <label for="photo-input" class="photo-label">
+                    <label for="photo-input" class="photo-label" id="photo-label">
                         <span class="camera-icon">📷</span>
-                        <span>사진 촬영하기</span>
+                        <span id="photo-label-text">사진 촬영하기</span>
                     </label>
                     <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
                     <img id="photo-preview" class="photo-preview hidden" alt="미션 사진 미리보기" />
@@ -54,6 +54,13 @@
                     <span class="btn-text">미션 완료! 🎉</span>
                     <span class="btn-loading hidden">업로드 중...</span>
                 </button>
+                <div id="existing-action-btns" class="hidden" style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="document.getElementById('photo-input').click()">다시 도전하기</button>
+                    <button class="btn btn-outline" style="flex:1; border-color: var(--accent-rose); color: var(--accent-rose);" id="cancel-mission-btn" onclick="cancelMission()">
+                        <span class="btn-text">취소하기</span>
+                        <span class="btn-loading hidden">처리 중...</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

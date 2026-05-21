@@ -48,24 +48,6 @@ const MISSIONS = [
         timeAttack: false,
     },
     {
-        id: 'stage1_hidden',
-        stage: 1,
-        title: '히든 미션',
-        description: "이름에 'ㅇ'이 들어가는 멤버 중 한 명이 리더가 되어, 나머지 멤버들을 이끄는 재미있는 콩트 컨셉 사진을 찍어주세요!",
-        points: 20,
-        icon: '🎭',
-        timeAttack: false,
-    },
-    {
-        id: 'stage2_observe',
-        stage: 2,
-        title: '관찰 미션',
-        description: "걷다가 발견한 가장 독특한 모양의 간판이나 붉은색 벽돌 건물을 배경으로 '따봉' 포즈 인증샷을 찍어주세요!",
-        points: 20,
-        icon: '👀',
-        timeAttack: false,
-    },
-    {
         id: 'stage2_discover',
         stage: 2,
         title: '발견 미션',
@@ -82,15 +64,6 @@ const MISSIONS = [
         points: 50,
         icon: '🏛️',
         timeAttack: true,   // 선착순 3명 보너스 +15점
-    },
-    {
-        id: 'stage4_finish',
-        stage: 4,
-        title: '피니시 라인',
-        description: '딜라이트 스퀘어 지하 2층 빕스 매장 입구 도착 인증샷을 찍어주세요!',
-        points: 30,
-        icon: '🏁',
-        timeAttack: false,
     },
     {
         id: 'stage4_final',
@@ -238,12 +211,15 @@ function renderLogin() {
     return `
         <div class="login-view">
             <div class="login-logo">🧭</div>
-            <h1 class="login-title">DX 트레저 헌트</h1>
+            <h1 class="login-title">DX지원팀 합정 아웃팅</h1>
             <p class="login-subtitle">
                 합정역 → 정몽주 동상 → 빕스<br>
                 사진 미션을 수행하고 1등을 차지하세요!
             </p>
-            <p class="login-label">참가자 선택</p>
+            <div class="prize-banner pulse-anim">
+                ☕ 1등부터 3등까지는 특별히 커피를 쏩니다!! ☕
+            </div>
+            <p class="login-label" style="margin-top: 16px;">참가자 선택</p>
             <div class="player-grid">
                 ${playerCards}
             </div>
@@ -374,10 +350,8 @@ function renderMissionCard(mission) {
         ? `<span class="time-attack-badge">⚡ 타임어택 +${TIME_ATTACK_BONUS}</span>`
         : '';
 
-    const onclick = sub ? '' : `onclick="openPhotoModal('${mission.id}')"`;
-
     return `
-        <div class="mission-card ${cardClass}" ${onclick}>
+        <div class="mission-card ${cardClass}" onclick="openPhotoModal('${mission.id}')">
             <div class="mission-icon">${mission.icon}</div>
             <div class="mission-info">
                 <div class="mission-name">${mission.title} ${timeAttackBadge}</div>
@@ -494,19 +468,34 @@ function openPhotoModal(missionId) {
     document.getElementById('modal-title').textContent = `${mission.icon} ${mission.title}`;
     document.getElementById('modal-description').textContent = mission.description;
 
-    // Reset photo area
     const previewArea = document.getElementById('photo-preview-area');
     const previewImg = document.getElementById('photo-preview');
     const submitBtn = document.getElementById('submit-photo-btn');
     const photoInput = document.getElementById('photo-input');
+    const actionBtns = document.getElementById('existing-action-btns');
+    const photoLabel = document.getElementById('photo-label');
 
-    previewArea.classList.remove('has-photo');
-    previewImg.classList.add('hidden');
-    previewImg.src = '';
-    submitBtn.classList.add('hidden');
-    photoInput.value = '';
+    // Check if already submitted
+    const existingSub = state.mySubmissions[mission.id];
 
-    // Show points info
+    if (existingSub) {
+        previewImg.src = existingSub.photo_url;
+        previewImg.classList.remove('hidden');
+        previewArea.classList.add('has-photo');
+        submitBtn.classList.add('hidden');
+        actionBtns.classList.remove('hidden');
+        photoLabel.style.display = 'none';
+    } else {
+        previewArea.classList.remove('has-photo');
+        previewImg.classList.add('hidden');
+        previewImg.src = '';
+        submitBtn.classList.add('hidden');
+        actionBtns.classList.add('hidden');
+        photoInput.value = '';
+        photoLabel.style.display = 'flex';
+        document.getElementById('photo-label-text').textContent = '사진 촬영하기';
+    }
+
     let pointsInfo = `(${mission.points}점`;
     if (mission.timeAttack) pointsInfo += ` + 선착순 3명 보너스 ${TIME_ATTACK_BONUS}점`;
     pointsInfo += ')';
@@ -533,12 +522,16 @@ async function handlePhotoSelect(event) {
         // Show preview
         const previewImg = document.getElementById('photo-preview');
         const previewArea = document.getElementById('photo-preview-area');
+        const photoLabel = document.getElementById('photo-label');
         previewImg.src = URL.createObjectURL(resizedBlob);
         previewImg.classList.remove('hidden');
         previewArea.classList.add('has-photo');
+        photoLabel.style.display = 'none';
 
-        // Show submit button
+        // Show submit button, hide existing action buttons
         document.getElementById('submit-photo-btn').classList.remove('hidden');
+        document.getElementById('existing-action-btns').classList.add('hidden');
+        document.querySelector('#submit-photo-btn .btn-text').textContent = '새로운 사진으로 미션 완료! 🎉';
     } catch (err) {
         console.error('Photo resize error:', err);
         showToast('사진 처리 중 오류가 발생했습니다.', 'error');
@@ -581,75 +574,32 @@ async function submitPhoto() {
             .getPublicUrl(filePath);
         const photoUrl = urlData.publicUrl;
 
-        // 3. Insert submission
+        // 3. Upsert submission
         const { error: subError } = await state.supabase
             .from('submissions')
-            .insert({
+            .upsert({
                 player_id: playerId,
                 mission_id: mission.id,
                 photo_url: photoUrl,
                 status: 'approved',
-            });
+                submitted_at: new Date().toISOString()
+            }, { onConflict: 'player_id, mission_id' });
 
-        if (subError) {
-            // Duplicate check
-            if (subError.code === '23505') {
-                showToast('이미 완료한 미션입니다!', 'info');
-                closePhotoModal();
-                return;
-            }
-            throw subError;
-        }
+        if (subError) throw subError;
 
-        // 4. Calculate score (including time attack bonus)
-        let earnedPoints = mission.points;
-
-        if (mission.timeAttack) {
-            const { data: taData } = await state.supabase
-                .from('submissions')
-                .select('player_id')
-                .eq('mission_id', mission.id)
-                .eq('status', 'approved')
-                .order('submitted_at', { ascending: true })
-                .limit(3);
-
-            if (taData && taData.some(s => s.player_id === playerId)) {
-                const rank = taData.findIndex(s => s.player_id === playerId);
-                if (rank < 3) {
-                    earnedPoints += TIME_ATTACK_BONUS;
-                    showToast(`⚡ 타임어택 ${rank + 1}등! +${TIME_ATTACK_BONUS}점 보너스!`, 'success');
-                }
-            }
-        }
-
-        // 5. Update player score
-        const { error: scoreError } = await state.supabase.rpc('increment_score', {
-            p_id: playerId,
-            points: earnedPoints,
-        });
-
-        // Fallback: direct update if RPC doesn't exist
-        if (scoreError) {
-            const currentScore = getMyScore();
-            await state.supabase
-                .from('players')
-                .update({
-                    total_score: currentScore + earnedPoints,
-                    completed_missions: Object.keys(state.mySubmissions).length + 1,
-                })
-                .eq('id', playerId);
-        }
-
-        // 6. Update local state
+        // 4. Update local state
         state.mySubmissions[mission.id] = {
             status: 'approved',
             photo_url: photoUrl,
             submitted_at: new Date().toISOString(),
         };
 
+        // 5. Recalculate score entirely for this player
+        await recalculateScore(playerId);
+
         // 7. Celebrate!
         closePhotoModal();
-        showToast(`🎉 ${mission.title} 완료! +${earnedPoints}점`, 'success');
+        showToast(`🎉 ${mission.title} 완료!`, 'success');
 
         // Confetti
         if (typeof confetti === 'function') {
@@ -670,6 +620,100 @@ async function submitPhoto() {
         if (btnText) btnText.classList.remove('hidden');
         if (btnLoading) btnLoading.classList.add('hidden');
     }
+}
+
+async function cancelMission() {
+    if (!state.selectedMission || state.isUploading) return;
+    
+    if (!confirm('정말 이 미션을 취소하시겠습니까? 기록과 점수가 초기화됩니다.')) return;
+
+    state.isUploading = true;
+    const btnText = document.querySelector('#cancel-mission-btn .btn-text');
+    const btnLoading = document.querySelector('#cancel-mission-btn .btn-loading');
+    btnText.classList.add('hidden');
+    btnLoading.classList.remove('hidden');
+
+    try {
+        const missionId = state.selectedMission.id;
+        const playerId = state.currentPlayer.id;
+
+        // Delete from DB
+        const { error } = await state.supabase
+            .from('submissions')
+            .delete()
+            .eq('player_id', playerId)
+            .eq('mission_id', missionId);
+
+        if (error) throw error;
+
+        // Remove from local state
+        delete state.mySubmissions[missionId];
+
+        // Recalculate Score
+        await recalculateScore(playerId);
+
+        closePhotoModal();
+        showToast('미션이 취소되었습니다.', 'info');
+        await loadLeaderboard();
+        render();
+
+    } catch (err) {
+        console.error('Cancel error:', err);
+        showToast('취소 중 오류가 발생했습니다.', 'error');
+    } finally {
+        state.isUploading = false;
+        if (btnText) btnText.classList.remove('hidden');
+        if (btnLoading) btnLoading.classList.add('hidden');
+    }
+}
+
+async function recalculateScore(playerId) {
+    if (!isSupabaseReady()) return;
+
+    // Get all submissions for player
+    const { data: subs, error } = await state.supabase
+        .from('submissions')
+        .select('*')
+        .eq('player_id', playerId)
+        .eq('status', 'approved');
+        
+    if (error) {
+        console.error('Failed to load subs for score calc:', error);
+        return;
+    }
+
+    let newScore = 0;
+    const completedCount = subs ? subs.length : 0;
+
+    if (subs) {
+        for (const sub of subs) {
+            const m = MISSIONS.find(miss => miss.id === sub.mission_id);
+            if (m) {
+                newScore += m.points;
+                if (m.timeAttack) {
+                    const { data: taData } = await state.supabase
+                        .from('submissions')
+                        .select('player_id')
+                        .eq('mission_id', m.id)
+                        .eq('status', 'approved')
+                        .order('submitted_at', { ascending: true })
+                        .limit(3);
+                    if (taData && taData.findIndex(s => s.player_id === playerId) !== -1) {
+                        newScore += TIME_ATTACK_BONUS;
+                    }
+                }
+            }
+        }
+    }
+
+    // Update player score in DB directly
+    await state.supabase
+        .from('players')
+        .update({
+            total_score: newScore,
+            completed_missions: completedCount
+        })
+        .eq('id', playerId);
 }
 
 // ============================================================

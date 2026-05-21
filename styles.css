@@ -182,6 +182,28 @@ body {
     font-weight: 600;
 }
 
+.prize-banner {
+    background: linear-gradient(90deg, rgba(245, 197, 66, 0.1), rgba(244, 63, 94, 0.1));
+    border: 1px solid var(--accent-gold);
+    color: var(--accent-gold);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 15px rgba(245, 197, 66, 0.15);
+}
+
+.pulse-anim {
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { transform: scale(1); box-shadow: 0 0 10px rgba(245, 197, 66, 0.2); }
+    50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(245, 197, 66, 0.5); }
+    100% { transform: scale(1); box-shadow: 0 0 10px rgba(245, 197, 66, 0.2); }
+}
+
 .player-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -348,11 +370,22 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: all 0.3s var(--ease);
+    transition: all 0.3s var(--ease-spring);
     -webkit-tap-highlight-color: transparent;
+    animation: slideInRight 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateX(30px);
 }
+.mission-card:nth-child(1) { animation-delay: 0.1s; }
+.mission-card:nth-child(2) { animation-delay: 0.2s; }
+.mission-card:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes slideInRight {
+    to { opacity: 1; transform: translateX(0); }
+}
+
 .mission-card:active {
-    transform: scale(0.97);
+    transform: scale(0.95);
     background: var(--glass-bg-hover);
 }
 .mission-card.completed {
@@ -674,12 +707,13 @@ body {
     padding: 24px 20px;
     padding-bottom: calc(24px + var(--safe-bottom));
     overflow-y: auto;
-    animation: slideUp 0.35s var(--ease);
+    animation: slideUpSpring 0.5s var(--ease-spring) forwards;
 }
 
-@keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+@keyframes slideUpSpring {
+    0% { transform: translateY(100%); }
+    70% { transform: translateY(-5%); }
+    100% { transform: translateY(0); }
 }
 
 .modal-header {
