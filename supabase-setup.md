@@ -114,6 +114,14 @@ CREATE POLICY "Anyone can insert submissions"
     ON submissions FOR INSERT
     WITH CHECK (true);
 
+CREATE POLICY "Anyone can update submissions"
+    ON submissions FOR UPDATE
+    USING (true);
+
+CREATE POLICY "Anyone can delete submissions"
+    ON submissions FOR DELETE
+    USING (true);
+
 -- Storage: photos 버킷 접근 정책
 CREATE POLICY "Anyone can upload photos"
     ON storage.objects FOR INSERT

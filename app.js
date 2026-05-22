@@ -212,16 +212,23 @@ function updateNavActive(view) {
 // ============================================================
 
 function renderLogin() {
-    const playerCards = PLAYERS.map(p => `
-        <button class="player-card" onclick="loginAsPlayer('${p.id}')">
-            <span class="emoji">${p.emoji}</span>
-            <span class="name">${p.name}</span>
-        </button>
-    `).join('');
+    const playerCards = PLAYERS.map(p => {
+        const isLeader = p.id === 'park_a';
+        const leaderBadge = isLeader ? `<div class="leader-badge">팀장</div>` : '';
+        return `
+            <button class="player-card fade-in-up" onclick="loginAsPlayer('${p.id}')">
+                ${leaderBadge}
+                <span class="emoji">${p.emoji}</span>
+                <span class="name">${p.name}</span>
+            </button>
+        `;
+    }).join('');
 
     return `
         <div class="login-view">
-            <div class="login-logo">🧭</div>
+            <div class="login-logo text-logo float-anim">
+                <span style="color:#E3000F;">kt</span> skylife
+            </div>
             <h1 class="login-title">DX지원팀 합정 아웃팅</h1>
             <p class="login-subtitle">
                 합정역 → 정몽주 동상 → 빕스<br>
@@ -230,12 +237,15 @@ function renderLogin() {
             <div class="prize-banner pulse-anim">
                 ☕ 1등부터 3등까지는 특별히 커피를 쏩니다!! ☕
             </div>
-            <p class="login-label" style="margin-top: 16px;">참가자 선택</p>
+            <p class="login-label highlight-label pulse-anim" style="margin-top: 16px;">
+                👇 본인의 이름을 클릭하고 입장해주세요 👇
+            </p>
             <div class="player-grid">
                 ${playerCards}
             </div>
             
-            <div style="margin-top: 40px; width: 100%; max-width: 340px;">
+            <div style="position: relative; margin-top: 40px; width: 100%; max-width: 340px;">
+                <span class="bonus-game-badge bounce-anim">번외 게임</span>
                 <button class="btn btn-outline btn-full" style="border-color: var(--accent-purple); color: var(--accent-purple);" onclick="navigate('ladder')">
                     🎲 DX 사다리 게임하기
                 </button>
@@ -655,13 +665,17 @@ async function cancelMission() {
         const playerId = state.currentPlayer.id;
 
         // Delete from DB
-        const { error } = await state.supabase
+        const { data, error } = await state.supabase
             .from('submissions')
             .delete()
             .eq('player_id', playerId)
-            .eq('mission_id', missionId);
+            .eq('mission_id', missionId)
+            .select();
 
         if (error) throw error;
+        if (!data || data.length === 0) {
+            throw new Error('Supabase RLS 오류입니다. Supabase 대시보드에서 DELETE 정책을 추가해주세요.');
+        }
 
         // Remove from local state
         delete state.mySubmissions[missionId];
